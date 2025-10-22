@@ -45,7 +45,7 @@ The official frontend is supported by non-intrusive ads, which help fund continu
    - **Windows:** Double-click `run-local.bat`
    - **Linux/macOS:** `chmod +x run-local.sh && ./run-local.sh`
 4. **Verify** it's running: Open `http://localhost:3000/health`
-5. **Use the frontend:** Visit [https://revanced.aun.rest](https://revanced.aun.rest)
+5. **Use the frontend:** Visit [https://rv.aun.rest](https://rv.aun.rest)
 
 The backend will run on port `3000` by default. You can change this by setting the `PORT` environment variable.
 
@@ -115,7 +115,7 @@ This means:
 
 See [LICENSE](./LICENSE) for full details.
 
-**Important:** The official web frontend at [revanced.aun.rest](https://revanced.aun.rest) is **NOT** covered by this license. It is proprietary and closed source.
+**Important:** The official web frontend at [rv.aun.rest](https://rv.aun.rest) is **NOT** covered by this license. It is proprietary and closed source.
 
 ## Support
 

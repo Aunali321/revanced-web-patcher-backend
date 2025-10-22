@@ -51,7 +51,7 @@ private fun Application.configureServer() {
 
     val allowedOrigins =
             parseAllowedOrigins(
-                    (System.getenv("ALLOWED_ORIGINS") ?: "*")
+                    (System.getenv("ALLOWED_ORIGINS") ?: "https://rv.aun.rest")
                             .split(',')
                             .map { it.trim() }
                             .filter { it.isNotEmpty() },
