@@ -1,0 +1,51 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Grant execute permission to scripts
+        run: chmod +x scripts/*.sh
+
+      - name: Build release artifacts
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: scripts/package-release.sh "${{ github.ref_name }}"
+
+      - name: Generate changelog
+        id: changelog
+        uses: ardalanamini/auto-changelog@v4.0.6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-name: ${{ github.ref_name }}
+          semver: false
+          mention-authors: false
+          mention-new-contributors: false
+          include-compare-link: true
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/release/revanced-web-patcher-${{ github.ref_name }}.zip
+          body: ${{ steps.changelog.outputs.changelog }}
