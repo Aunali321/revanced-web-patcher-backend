@@ -15,12 +15,12 @@ This is the **backend service** that powers the ReVanced web patcher. It provide
 
 ## Official Frontend
 
-The official web interface is hosted at **[https://revanced.aun.rest](https://revanced.aun.rest)** (closed source, ad-supported).
+The official web interface is hosted at **[https://rv.aun.rest](https://rv.aun.rest)** (closed source, ad-supported).
 
 ### How to Use
 
 1. **Run this backend locally** (see instructions below)
-2. **Visit [revanced.aun.rest](https://revanced.aun.rest)** in your browser
+2. **Visit [rv.aun.rest](https://rv.aun.rest)** in your browser
 3. **Enter your backend URL** (default: `http://localhost:3000`)
 4. **Patch your APKs** - all processing happens locally on your machine
 
