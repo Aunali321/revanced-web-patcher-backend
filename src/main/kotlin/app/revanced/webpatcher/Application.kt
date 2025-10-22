@@ -112,7 +112,7 @@ private data class AllowedOrigin(
 
 private val DEFAULT_ALLOWED_ORIGINS =
         listOf(
-                "https://revanced.aun.rest",
+                "https://rv.aun.rest",
         )
 
 private fun parseAllowedOrigins(entries: List<String>): List<AllowedOrigin> =
