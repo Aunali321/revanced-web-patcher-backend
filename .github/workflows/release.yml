@@ -165,15 +165,13 @@ jobs:
           EOF
           chmod +x AppDir/AppRun
           
-          # Create simple PNG icon (placeholder)
-          convert -size 256x256 xc:blue -fill white -pointsize 48 -gravity center -annotate +0+0 "RV" AppDir/revanced-web-patcher.png
+          # Skip icon - not required for AppImage to work
           
-          # Create desktop file with icon
+          # Create desktop file
           cat > AppDir/revanced-web-patcher.desktop << EOF
           [Desktop Entry]
           Name=ReVanced Web Patcher
           Exec=web-patcher-service
-          Icon=revanced-web-patcher
           Type=Application
           Categories=Development;
           EOF
@@ -181,8 +179,8 @@ jobs:
           # Extract AppImage tool (FUSE not available in CI)
           ./appimagetool-x86_64.AppImage --appimage-extract
           
-          # Build AppImage using extracted tool
-          ARCH=x86_64 squashfs-root/AppRun AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
+          # Build AppImage using extracted tool (--no-appstream skips icon checks)
+          ARCH=x86_64 squashfs-root/AppRun --no-appstream AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
