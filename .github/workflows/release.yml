@@ -174,8 +174,11 @@ jobs:
           Categories=Development;
           EOF
           
-          # Build AppImage
-          ./appimagetool-x86_64.AppImage AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
+          # Extract AppImage tool (FUSE not available in CI)
+          ./appimagetool-x86_64.AppImage --appimage-extract
+          
+          # Build AppImage using extracted tool
+          squashfs-root/AppRun AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
