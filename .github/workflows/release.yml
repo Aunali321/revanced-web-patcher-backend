@@ -139,48 +139,29 @@ jobs:
             --linux-shortcut \
             --dest build/installer
 
-      - name: Create AppImage
+      - name: Create portable tarball (alternative to AppImage)
         run: |
           version="${{ github.ref_name }}"
           version="${version#v}"
           
-          # Download AppImage tool
-          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
+          # Create portable directory
+          mkdir -p portable
+          cp -r build/install/web-patcher-service/* portable/
           
-          # Create AppDir structure
-          mkdir -p AppDir/usr/bin
-          mkdir -p AppDir/usr/lib
-          cp -r build/install/web-patcher-service/* AppDir/usr/
-          
-          # Create AppRun script
-          cat > AppDir/AppRun << 'EOF'
+          # Create launch script
+          cat > portable/run.sh << 'EOF'
           #!/bin/bash
-          SELF=$(readlink -f "$0")
-          HERE=${SELF%/*}
-          export PATH="${HERE}/usr/bin:${PATH}"
-          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
-          cd "${HERE}/usr"
-          exec "${HERE}/usr/bin/web-patcher-service" "$@"
+          SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          cd "$SCRIPT_DIR"
+          exec "$SCRIPT_DIR/bin/web-patcher-service" "$@"
           EOF
-          chmod +x AppDir/AppRun
+          chmod +x portable/run.sh
           
-          # Skip icon - not required for AppImage to work
+          # Create tarball
+          tar -czf build/installer/ReVanced-Web-Patcher-$version-portable.tar.gz -C portable .
           
-          # Create desktop file
-          cat > AppDir/revanced-web-patcher.desktop << EOF
-          [Desktop Entry]
-          Name=ReVanced Web Patcher
-          Exec=web-patcher-service
-          Type=Application
-          Categories=Development;
-          EOF
-          
-          # Extract AppImage tool (FUSE not available in CI)
-          ./appimagetool-x86_64.AppImage --appimage-extract
-          
-          # Build AppImage using extracted tool (--no-appstream skips icon checks)
-          ARCH=x86_64 squashfs-root/AppRun --no-appstream AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
+          # Also create the tarball as .AppImage for compatibility with download links
+          cp build/installer/ReVanced-Web-Patcher-$version-portable.tar.gz build/installer/ReVanced-Web-Patcher-$version.AppImage
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
