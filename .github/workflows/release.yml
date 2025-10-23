@@ -165,11 +165,15 @@ jobs:
           EOF
           chmod +x AppDir/AppRun
           
-          # Create desktop file
+          # Create simple PNG icon (placeholder)
+          convert -size 256x256 xc:blue -fill white -pointsize 48 -gravity center -annotate +0+0 "RV" AppDir/revanced-web-patcher.png
+          
+          # Create desktop file with icon
           cat > AppDir/revanced-web-patcher.desktop << EOF
           [Desktop Entry]
           Name=ReVanced Web Patcher
           Exec=web-patcher-service
+          Icon=revanced-web-patcher
           Type=Application
           Categories=Development;
           EOF
@@ -178,7 +182,7 @@ jobs:
           ./appimagetool-x86_64.AppImage --appimage-extract
           
           # Build AppImage using extracted tool
-          squashfs-root/AppRun AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
+          ARCH=x86_64 squashfs-root/AppRun AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
