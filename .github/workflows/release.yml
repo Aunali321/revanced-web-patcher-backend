@@ -30,6 +30,10 @@ jobs:
       - name: Create Windows installer
         run: |
           $version = "${{ github.ref_name }}".Substring(1)
+          
+          # Copy PowerShell GUI launcher
+          Copy-Item src/main/resources/revanced-web-patcher-gui.ps1 "build/install/web-patcher-service/ReVanced Web Patcher GUI.ps1"
+          
           jpackage `
             --type exe `
             --input build/install/web-patcher-service/lib `
@@ -43,7 +47,16 @@ jobs:
             --win-menu `
             --win-shortcut `
             --win-menu-group "ReVanced" `
+            --win-shortcut-prompt `
+            --resource-dir src/main/resources `
             --dest build/installer
+          
+          # Create GUI shortcut launcher script
+          $guiLauncherPath = "build/installer/ReVanced Web Patcher GUI.bat"
+          @"
+          @echo off
+          powershell.exe -ExecutionPolicy Bypass -File "%ProgramFiles%\ReVanced Web Patcher\ReVanced Web Patcher GUI.ps1"
+          "@ | Out-File -FilePath $guiLauncherPath -Encoding ASCII
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
