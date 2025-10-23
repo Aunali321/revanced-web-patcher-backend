@@ -139,29 +139,45 @@ jobs:
             --linux-shortcut \
             --dest build/installer
 
-      - name: Create portable tarball (alternative to AppImage)
+      - name: Create Flatpak
         run: |
           version="${{ github.ref_name }}"
           version="${version#v}"
           
-          # Create portable directory
-          mkdir -p portable
-          cp -r build/install/web-patcher-service/* portable/
+          # Install flatpak-builder
+          sudo apt-get update
+          sudo apt-get install -y flatpak-builder
           
-          # Create launch script
-          cat > portable/run.sh << 'EOF'
-          #!/bin/bash
-          SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-          cd "$SCRIPT_DIR"
-          exec "$SCRIPT_DIR/bin/web-patcher-service" "$@"
+          # Create flatpak manifest
+          cat > app.revanced.webpatcher.yml << EOF
+          app-id: app.revanced.webpatcher
+          runtime: org.freedesktop.Platform
+          runtime-version: '23.08'
+          sdk: org.freedesktop.Sdk
+          sdk-extensions:
+            - org.freedesktop.Sdk.Extension.openjdk17
+          command: web-patcher-service
+          finish-args:
+            - --socket=wayland
+            - --socket=fallback-x11
+            - --share=network
+            - --filesystem=home
+          modules:
+            - name: revanced-patcher
+              buildsystem: simple
+              build-commands:
+                - mkdir -p /app/bin
+                - mkdir -p /app/lib
+                - cp -r * /app/
+                - chmod +x /app/bin/web-patcher-service
+              sources:
+                - type: dir
+                  path: build/install/web-patcher-service
           EOF
-          chmod +x portable/run.sh
           
-          # Create tarball
-          tar -czf build/installer/ReVanced-Web-Patcher-$version-portable.tar.gz -C portable .
-          
-          # Also create the tarball as .AppImage for compatibility with download links
-          cp build/installer/ReVanced-Web-Patcher-$version-portable.tar.gz build/installer/ReVanced-Web-Patcher-$version.AppImage
+          # Build flatpak
+          flatpak-builder --force-clean --repo=repo build-dir app.revanced.webpatcher.yml
+          flatpak build-bundle repo build/installer/ReVanced-Web-Patcher-$version.flatpak app.revanced.webpatcher
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
