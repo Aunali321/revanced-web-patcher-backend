@@ -147,7 +147,7 @@ jobs:
           rm -rf temp-deb
           cd ../..
           
-          # RPM package
+          # RPM package (note: GUI launcher works same as DEB on Fedora/RHEL)
           jpackage \
             --type rpm \
             --input build/install/web-patcher-service/lib \
@@ -159,7 +159,11 @@ jobs:
             --description "Local API backend for patching Android APKs with ReVanced" \
             --linux-menu-group "Development" \
             --linux-shortcut \
+            --resource-dir src/main/resources \
             --dest build/installer
+          
+          # Note: RPM users need to manually install zenity: sudo dnf install zenity
+          # The GUI launcher script is included via --resource-dir but needs post-install handling
 
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
