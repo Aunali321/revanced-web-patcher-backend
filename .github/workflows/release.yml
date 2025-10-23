@@ -90,7 +90,7 @@ jobs:
           path: build/installer/*.pkg
 
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
 
@@ -123,7 +123,7 @@ jobs:
             --description "Local API backend for patching Android APKs with ReVanced" \
             --linux-menu-group "Development" \
             --linux-shortcut \
-            --linux-package-deps "libasound2t64 | libasound2, libpng16-16t64 | libpng16-16" \
+            --linux-package-deps "libasound2, libpng16-16" \
             --dest build/installer
           
           # RPM package
