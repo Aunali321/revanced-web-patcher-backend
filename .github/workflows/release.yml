@@ -139,46 +139,6 @@ jobs:
             --linux-shortcut \
             --dest build/installer
 
-      - name: Create Flatpak
-        run: |
-          version="${{ github.ref_name }}"
-          version="${version#v}"
-          
-          # Install flatpak-builder
-          sudo apt-get update
-          sudo apt-get install -y flatpak-builder
-          
-          # Create flatpak manifest
-          cat > app.revanced.webpatcher.yml << EOF
-          app-id: app.revanced.webpatcher
-          runtime: org.freedesktop.Platform
-          runtime-version: '23.08'
-          sdk: org.freedesktop.Sdk
-          sdk-extensions:
-            - org.freedesktop.Sdk.Extension.openjdk17
-          command: web-patcher-service
-          finish-args:
-            - --socket=wayland
-            - --socket=fallback-x11
-            - --share=network
-            - --filesystem=home
-          modules:
-            - name: revanced-patcher
-              buildsystem: simple
-              build-commands:
-                - mkdir -p /app/bin
-                - mkdir -p /app/lib
-                - cp -r * /app/
-                - chmod +x /app/bin/web-patcher-service
-              sources:
-                - type: dir
-                  path: build/install/web-patcher-service
-          EOF
-          
-          # Build flatpak
-          flatpak-builder --force-clean --repo=repo build-dir app.revanced.webpatcher.yml
-          flatpak build-bundle repo build/installer/ReVanced-Web-Patcher-$version.flatpak app.revanced.webpatcher
-
       - name: Upload Linux packages
         uses: actions/upload-artifact@v4
         with:
@@ -186,7 +146,6 @@ jobs:
           path: |
             build/installer/*.deb
             build/installer/*.rpm
-            build/installer/*.AppImage
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -218,7 +177,6 @@ jobs:
             macos-installer/*.pkg
             linux-packages/*.deb
             linux-packages/*.rpm
-            linux-packages/*.AppImage
           body: |
             ${{ steps.changelog.outputs.changelog }}
             
@@ -233,6 +191,5 @@ jobs:
             ### Linux
             - `revanced-web-patcher_*.deb` - For Ubuntu/Debian: `sudo dpkg -i revanced-web-patcher_*.deb`
             - `revanced-web-patcher-*.rpm` - For Fedora/RHEL: `sudo rpm -i revanced-web-patcher-*.rpm`
-            - `ReVanced-Web-Patcher-*.AppImage` - Universal: `chmod +x *.AppImage && ./ReVanced-Web-Patcher-*.AppImage`
             
             All installers include a bundled Java runtime - no need to install Java separately!
