@@ -10,13 +10,10 @@ permissions:
   packages: read
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
+  build-windows:
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
 
       - name: Set up JDK
         uses: actions/setup-java@v4
@@ -24,14 +21,181 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant execute permission to scripts
-        run: chmod +x scripts/*.sh
-
-      - name: Build release artifacts
+      - name: Build application
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: scripts/package-release.sh "${{ github.ref_name }}"
+        run: ./gradlew.bat installDist
+
+      - name: Create Windows installer
+        run: |
+          $version = "${{ github.ref_name }}".Substring(1)
+          jpackage `
+            --type exe `
+            --input build/install/web-patcher-service/lib `
+            --main-jar web-patcher-service-$version.jar `
+            --main-class app.revanced.webpatcher.ApplicationKt `
+            --name "ReVanced Web Patcher" `
+            --app-version $version `
+            --vendor "ReVanced" `
+            --description "Local API backend for patching Android APKs with ReVanced" `
+            --win-dir-chooser `
+            --win-menu `
+            --win-shortcut `
+            --win-menu-group "ReVanced" `
+            --dest build/installer
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: build/installer/*.exe
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build application
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew installDist
+
+      - name: Create macOS installer
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          jpackage \
+            --type pkg \
+            --input build/install/web-patcher-service/lib \
+            --main-jar web-patcher-service-$version.jar \
+            --main-class app.revanced.webpatcher.ApplicationKt \
+            --name "ReVanced Web Patcher" \
+            --app-version $version \
+            --vendor "ReVanced" \
+            --description "Local API backend for patching Android APKs with ReVanced" \
+            --dest build/installer
+
+      - name: Upload macOS installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer
+          path: build/installer/*.pkg
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build application
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew installDist
+
+      - name: Create Linux packages
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          
+          # DEB package
+          jpackage \
+            --type deb \
+            --input build/install/web-patcher-service/lib \
+            --main-jar web-patcher-service-$version.jar \
+            --main-class app.revanced.webpatcher.ApplicationKt \
+            --name revanced-web-patcher \
+            --app-version $version \
+            --vendor "ReVanced" \
+            --description "Local API backend for patching Android APKs with ReVanced" \
+            --linux-menu-group "Development" \
+            --linux-shortcut \
+            --dest build/installer
+          
+          # RPM package
+          jpackage \
+            --type rpm \
+            --input build/install/web-patcher-service/lib \
+            --main-jar web-patcher-service-$version.jar \
+            --main-class app.revanced.webpatcher.ApplicationKt \
+            --name revanced-web-patcher \
+            --app-version $version \
+            --vendor "ReVanced" \
+            --description "Local API backend for patching Android APKs with ReVanced" \
+            --linux-menu-group "Development" \
+            --linux-shortcut \
+            --dest build/installer
+
+      - name: Create AppImage
+        run: |
+          version="${{ github.ref_name }}"
+          version="${version#v}"
+          
+          # Download AppImage tool
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          
+          # Create AppDir structure
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/lib
+          cp -r build/install/web-patcher-service/* AppDir/usr/
+          
+          # Create AppRun script
+          cat > AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          SELF=$(readlink -f "$0")
+          HERE=${SELF%/*}
+          export PATH="${HERE}/usr/bin:${PATH}"
+          export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
+          cd "${HERE}/usr"
+          exec "${HERE}/usr/bin/web-patcher-service" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+          
+          # Create desktop file
+          cat > AppDir/revanced-web-patcher.desktop << EOF
+          [Desktop Entry]
+          Name=ReVanced Web Patcher
+          Exec=web-patcher-service
+          Type=Application
+          Categories=Development;
+          EOF
+          
+          # Build AppImage
+          ./appimagetool-x86_64.AppImage AppDir build/installer/ReVanced-Web-Patcher-$version.AppImage
+
+      - name: Upload Linux packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: |
+            build/installer/*.deb
+            build/installer/*.rpm
+            build/installer/*.AppImage
+
+  release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
 
       - name: Generate changelog
         id: changelog
@@ -44,8 +208,29 @@ jobs:
           mention-new-contributors: false
           include-compare-link: true
 
-      - name: Upload release assets
+      - name: Create release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/release/revanced-web-patcher-${{ github.ref_name }}.zip
-          body: ${{ steps.changelog.outputs.changelog }}
+          files: |
+            windows-installer/*.exe
+            macos-installer/*.pkg
+            linux-packages/*.deb
+            linux-packages/*.rpm
+            linux-packages/*.AppImage
+          body: |
+            ${{ steps.changelog.outputs.changelog }}
+            
+            ## Downloads
+            
+            ### Windows
+            - `ReVanced Web Patcher-*.exe` - Double-click to install
+            
+            ### macOS
+            - `ReVanced Web Patcher-*.pkg` - Double-click to install (bypass security warning in System Preferences)
+            
+            ### Linux
+            - `revanced-web-patcher_*.deb` - For Ubuntu/Debian: `sudo dpkg -i revanced-web-patcher_*.deb`
+            - `revanced-web-patcher-*.rpm` - For Fedora/RHEL: `sudo rpm -i revanced-web-patcher-*.rpm`
+            - `ReVanced-Web-Patcher-*.AppImage` - Universal: `chmod +x *.AppImage && ./ReVanced-Web-Patcher-*.AppImage`
+            
+            All installers include a bundled Java runtime - no need to install Java separately!
