@@ -39,15 +39,29 @@ The official frontend is supported by non-intrusive ads, which help fund continu
 
 ## Quick Start
 
-1. **Download** the latest release from [Releases](https://github.com/Aunali321/revanced-web-patcher-backend/releases/latest)
-2. **Extract** the ZIP archive
-3. **Run** the backend:
-   - **Windows:** Double-click `run-local.bat`
-   - **Linux/macOS:** `chmod +x run-local.sh && ./run-local.sh`
-4. **Verify** it's running: Open `http://localhost:3000/health`
-5. **Use the frontend:** Visit [https://rv.aun.rest](https://rv.aun.rest)
+### Desktop (Recommended)
 
-The backend will run on port `3000` by default. You can change this by setting the `PORT` environment variable.
+Download the installer for your platform from [Releases](https://github.com/Aunali321/revanced-web-patcher-backend/releases/latest):
+
+- **Windows:** `ReVanced-Web-Patcher.exe` - Double-click to install
+- **macOS:** `ReVanced-Web-Patcher.pkg` - Double-click to install (bypass security warning in System Preferences → Security & Privacy)
+- **Linux (Ubuntu/Debian):** `revanced-web-patcher.deb` - `sudo dpkg -i revanced-web-patcher.deb`
+- **Linux (Fedora/RHEL):** `revanced-web-patcher.rpm` - `sudo rpm -i revanced-web-patcher.rpm`
+- **Linux (Universal):** `ReVanced-Web-Patcher.AppImage` - `chmod +x *.AppImage && ./ReVanced-Web-Patcher.AppImage`
+
+**All installers include Java 17** - no separate installation needed!
+
+After installing, the server will be available at `http://localhost:3000`. Visit [https://rv.aun.rest](https://rv.aun.rest) to use it.
+
+### Android
+
+For mobile users, download the Android app:
+
+1. Get `revanced-web-patcher.apk` from [Android Releases](https://github.com/Aunali321/revanced-web-patcher-android/releases/latest)
+2. Install the APK (enable "Install from unknown sources")
+3. Open app → Tap "Start Server"
+4. Visit [https://rv.aun.rest](https://rv.aun.rest) in browser
+5. Configure server URL: `http://localhost:3000`
 
 ## Development
 
