@@ -111,12 +111,7 @@ jobs:
           version="${{ github.ref_name }}"
           version="${version#v}"
           
-          # Copy GUI launcher to build directory
-          mkdir -p build/install/web-patcher-service/bin
-          cp src/main/resources/revanced-web-patcher-gui build/install/web-patcher-service/bin/
-          chmod +x build/install/web-patcher-service/bin/revanced-web-patcher-gui
-          
-          # DEB package with gzip compression
+          # DEB package
           jpackage \
             --type deb \
             --input build/install/web-patcher-service/lib \
@@ -131,6 +126,19 @@ jobs:
             --linux-package-deps "libasound2, libpng16-16, zenity" \
             --resource-dir src/main/resources \
             --dest build/installer
+          
+          # Extract DEB, add GUI launcher, repackage
+          cd build/installer
+          dpkg-deb -R revanced-web-patcher_$version-1_amd64.deb temp-deb
+          
+          # Add GUI launcher to bin directory
+          cp ../../src/main/resources/revanced-web-patcher-gui temp-deb/opt/revanced-web-patcher/bin/
+          chmod +x temp-deb/opt/revanced-web-patcher/bin/revanced-web-patcher-gui
+          
+          # Repackage with gzip
+          dpkg-deb -Zgzip -b temp-deb revanced-web-patcher_$version-1_amd64.deb
+          rm -rf temp-deb
+          cd ../..
           
           # Repackage with gzip for Ubuntu 22.04 compatibility
           cd build/installer
