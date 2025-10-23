@@ -111,7 +111,10 @@ jobs:
           version="${{ github.ref_name }}"
           version="${version#v}"
           
-          # DEB package
+          # Install dpkg-deb for gzip compression (better compatibility with Ubuntu 22.04)
+          export _JPACKAGE_LAUNCHER_DEBUG=true
+          
+          # DEB package with gzip compression
           jpackage \
             --type deb \
             --input build/install/web-patcher-service/lib \
@@ -125,6 +128,12 @@ jobs:
             --linux-shortcut \
             --linux-package-deps "libasound2, libpng16-16" \
             --dest build/installer
+          
+          # Repackage with gzip for Ubuntu 22.04 compatibility
+          cd build/installer
+          dpkg-deb -R revanced-web-patcher_$version-1_amd64.deb temp-deb
+          dpkg-deb -Zgzip -b temp-deb revanced-web-patcher_$version-1_amd64.deb
+          rm -rf temp-deb
           
           # RPM package
           jpackage \
