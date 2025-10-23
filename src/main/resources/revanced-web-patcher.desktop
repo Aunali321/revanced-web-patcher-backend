@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=ReVanced Web Patcher
+Comment=Patch Android APKs with ReVanced
+Exec=/opt/revanced-web-patcher/bin/revanced-web-patcher-gui
+Icon=application-x-executable
+Terminal=false
+Categories=Development;Utility;
+Keywords=revanced;patcher;android;apk;
+StartupNotify=true

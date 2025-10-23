@@ -111,8 +111,10 @@ jobs:
           version="${{ github.ref_name }}"
           version="${version#v}"
           
-          # Install dpkg-deb for gzip compression (better compatibility with Ubuntu 22.04)
-          export _JPACKAGE_LAUNCHER_DEBUG=true
+          # Copy GUI launcher to build directory
+          mkdir -p build/install/web-patcher-service/bin
+          cp src/main/resources/revanced-web-patcher-gui build/install/web-patcher-service/bin/
+          chmod +x build/install/web-patcher-service/bin/revanced-web-patcher-gui
           
           # DEB package with gzip compression
           jpackage \
@@ -126,7 +128,8 @@ jobs:
             --description "Local API backend for patching Android APKs with ReVanced" \
             --linux-menu-group "Development" \
             --linux-shortcut \
-            --linux-package-deps "libasound2, libpng16-16" \
+            --linux-package-deps "libasound2, libpng16-16, zenity" \
+            --resource-dir src/main/resources \
             --dest build/installer
           
           # Repackage with gzip for Ubuntu 22.04 compatibility

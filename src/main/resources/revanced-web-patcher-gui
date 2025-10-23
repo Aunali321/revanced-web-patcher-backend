@@ -1,0 +1,115 @@
+#!/bin/bash
+# ReVanced Web Patcher - GUI Launcher
+# Copyright (C) 2024 ReVanced
+
+SERVER_BIN="/opt/revanced-web-patcher/bin/revanced-web-patcher"
+FRONTEND_URL="https://rv.aun.rest"
+
+check_server() {
+    pgrep -f "revanced-web-patcher" > /dev/null
+    return $?
+}
+
+start_server() {
+    if check_server; then
+        zenity --info --text="Server is already running!" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send "ReVanced Web Patcher" "Server is already running!"
+        return 0
+    fi
+    
+    $SERVER_BIN > /tmp/revanced-web-patcher.log 2>&1 &
+    sleep 2
+    
+    if check_server; then
+        zenity --info --text="Server started!\n\nAccess at: http://localhost:3000\nFrontend: $FRONTEND_URL" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send "ReVanced Web Patcher" "Server started! Visit $FRONTEND_URL"
+        
+        # Open frontend in browser
+        xdg-open "$FRONTEND_URL" 2>/dev/null &
+    else
+        zenity --error --text="Failed to start server. Check logs at /tmp/revanced-web-patcher.log" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send -u critical "ReVanced Web Patcher" "Failed to start server"
+    fi
+}
+
+stop_server() {
+    if ! check_server; then
+        zenity --info --text="Server is not running" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send "ReVanced Web Patcher" "Server is not running"
+        return 0
+    fi
+    
+    pkill -f "revanced-web-patcher"
+    sleep 1
+    
+    if ! check_server; then
+        zenity --info --text="Server stopped" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send "ReVanced Web Patcher" "Server stopped"
+    else
+        zenity --error --text="Failed to stop server" --title="ReVanced Web Patcher" 2>/dev/null || \
+        notify-send -u critical "ReVanced Web Patcher" "Failed to stop server"
+    fi
+}
+
+show_status() {
+    if check_server; then
+        STATUS="🟢 Running"
+        PID=$(pgrep -f "revanced-web-patcher")
+        MSG="Server is running (PID: $PID)\n\nAPI: http://localhost:3000\nFrontend: $FRONTEND_URL"
+    else
+        STATUS="🔴 Stopped"
+        MSG="Server is not running"
+    fi
+    
+    zenity --info --text="$MSG" --title="ReVanced Web Patcher - $STATUS" 2>/dev/null || \
+    notify-send "ReVanced Web Patcher" "$STATUS"
+}
+
+# Main menu
+while true; do
+    if check_server; then
+        STATUS_EMOJI="🟢"
+        STATUS_TEXT="Running"
+    else
+        STATUS_EMOJI="🔴"
+        STATUS_TEXT="Stopped"
+    fi
+    
+    CHOICE=$(zenity --list \
+        --title="ReVanced Web Patcher - $STATUS_EMOJI $STATUS_TEXT" \
+        --text="Manage ReVanced Web Patcher Server" \
+        --column="Action" \
+        "Start Server" \
+        "Stop Server" \
+        "Show Status" \
+        "Open Frontend" \
+        "View Logs" \
+        "Exit" \
+        --width=400 --height=350 2>/dev/null)
+    
+    case "$CHOICE" in
+        "Start Server")
+            start_server
+            ;;
+        "Stop Server")
+            stop_server
+            ;;
+        "Show Status")
+            show_status
+            ;;
+        "Open Frontend")
+            xdg-open "$FRONTEND_URL" 2>/dev/null &
+            ;;
+        "View Logs")
+            if [ -f /tmp/revanced-web-patcher.log ]; then
+                zenity --text-info --filename=/tmp/revanced-web-patcher.log --title="Server Logs" --width=800 --height=600 2>/dev/null || \
+                xdg-open /tmp/revanced-web-patcher.log 2>/dev/null
+            else
+                zenity --info --text="No logs found" --title="ReVanced Web Patcher" 2>/dev/null
+            fi
+            ;;
+        *)
+            exit 0
+            ;;
+    esac
+done
