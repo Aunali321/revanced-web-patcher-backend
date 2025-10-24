@@ -31,8 +31,13 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}".Substring(1)
           
-          # Copy PowerShell GUI launcher
-          Copy-Item src/main/resources/revanced-web-patcher-gui.ps1 "build/install/web-patcher-service/ReVanced Web Patcher GUI.ps1"
+          # Create app-image directory with GUI files
+          $appDir = "build/app-image"
+          New-Item -ItemType Directory -Force -Path $appDir
+          
+          # Copy GUI launcher files to app directory
+          Copy-Item "src/main/resources/revanced-web-patcher-gui.ps1" "$appDir/revanced-web-patcher-gui.ps1"
+          Copy-Item "src/main/resources/ReVanced-Web-Patcher-GUI.bat" "$appDir/ReVanced-Web-Patcher-GUI.bat"
           
           jpackage `
             --type exe `
@@ -48,15 +53,8 @@ jobs:
             --win-shortcut `
             --win-menu-group "ReVanced" `
             --win-shortcut-prompt `
-            --resource-dir src/main/resources `
+            --app-content $appDir `
             --dest build/installer
-          
-          # Create GUI shortcut launcher script
-          $guiLauncherPath = "build/installer/ReVanced Web Patcher GUI.bat"
-          @"
-          @echo off
-          powershell.exe -ExecutionPolicy Bypass -File "%ProgramFiles%\ReVanced Web Patcher\ReVanced Web Patcher GUI.ps1"
-          "@ | Out-File -FilePath $guiLauncherPath -Encoding ASCII
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
