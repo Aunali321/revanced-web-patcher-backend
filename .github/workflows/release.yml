@@ -31,13 +31,9 @@ jobs:
         run: |
           $version = "${{ github.ref_name }}".Substring(1)
           
-          # Create app-image directory with GUI files
-          $appDir = "build/app-image"
-          New-Item -ItemType Directory -Force -Path $appDir
-          
-          # Copy GUI launcher files to app directory
-          Copy-Item "src/main/resources/revanced-web-patcher-gui.ps1" "$appDir/revanced-web-patcher-gui.ps1"
-          Copy-Item "src/main/resources/ReVanced-Web-Patcher-GUI.bat" "$appDir/ReVanced-Web-Patcher-GUI.bat"
+          # Copy GUI launcher files to lib directory (will be included in app)
+          Copy-Item "src/main/resources/revanced-web-patcher-gui.ps1" "build/install/web-patcher-service/lib/revanced-web-patcher-gui.ps1"
+          Copy-Item "src/main/resources/ReVanced-Web-Patcher-GUI.bat" "build/install/web-patcher-service/lib/ReVanced-Web-Patcher-GUI.bat"
           
           jpackage `
             --type exe `
@@ -53,7 +49,6 @@ jobs:
             --win-shortcut `
             --win-menu-group "ReVanced" `
             --win-shortcut-prompt `
-            --app-content $appDir `
             --dest build/installer
 
       - name: Upload Windows installer
