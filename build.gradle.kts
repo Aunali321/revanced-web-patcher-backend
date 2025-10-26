@@ -1,10 +1,12 @@
 import org.gradle.api.tasks.Sync
 import org.gradle.jvm.toolchain.JavaLanguageVersion
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm") version "2.0.20"
-    application
+    id("org.jetbrains.compose") version "1.6.11"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.0.20"
 }
 
 group = "app.revanced"
@@ -36,6 +38,9 @@ java {
 }
 
 dependencies {
+    implementation(compose.desktop.currentOs)
+    implementation(compose.material3)
+
     implementation("io.ktor:ktor-server-core-jvm:2.3.7")
     implementation("io.ktor:ktor-server-netty-jvm:2.3.7")
     implementation("io.ktor:ktor-server-default-headers:2.3.7")
@@ -60,19 +65,14 @@ tasks.test {
     useJUnitPlatform()
 }
 
-application {
-    mainClass.set("app.revanced.webpatcher.ApplicationKt")
-}
+compose.desktop {
+    application {
+        mainClass = "app.revanced.webpatcher.ApplicationKt"
 
-val installDistTask = tasks.named<Sync>("installDist")
-
-tasks.register("localDist") {
-    dependsOn(installDistTask)
-    val outputDir = layout.buildDirectory.dir("local-dist")
-    doLast {
-        val target = outputDir.get().asFile
-        if (target.exists()) target.deleteRecursively()
-        target.mkdirs()
-        installDistTask.get().destinationDir.copyRecursively(target, overwrite = true)
+        nativeDistributions {
+            targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
+            packageName = "revanced-web-patcher"
+            packageVersion = "1.0.0"
+        }
     }
 }

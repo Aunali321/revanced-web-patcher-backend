@@ -25,37 +25,13 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew.bat installDist
+        run: ./gradlew.bat packageExe
 
-      - name: Create Windows installer
-        run: |
-          $version = "${{ github.ref_name }}".Substring(1)
-          
-          # Copy GUI launcher files to lib directory (will be included in app)
-          Copy-Item "src/main/resources/revanced-web-patcher-gui.ps1" "build/install/web-patcher-service/lib/revanced-web-patcher-gui.ps1"
-          Copy-Item "src/main/resources/ReVanced-Web-Patcher-GUI.bat" "build/install/web-patcher-service/lib/ReVanced-Web-Patcher-GUI.bat"
-          
-          jpackage `
-            --type exe `
-            --input build/install/web-patcher-service/lib `
-            --main-jar web-patcher-service-$version.jar `
-            --main-class app.revanced.webpatcher.ApplicationKt `
-            --name "ReVanced Web Patcher" `
-            --app-version $version `
-            --vendor "ReVanced" `
-            --description "Local API backend for patching Android APKs with ReVanced" `
-            --win-dir-chooser `
-            --win-menu `
-            --win-shortcut `
-            --win-menu-group "ReVanced" `
-            --win-shortcut-prompt `
-            --dest build/installer
-
-      - name: Upload Windows installer
+      - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
-          name: windows-installer
-          path: build/installer/*.exe
+          name: windows-executable
+          path: build/compose/binaries/main-exe/*.exe
 
   build-macos:
     runs-on: macos-latest
@@ -72,28 +48,13 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew installDist
+        run: ./gradlew packageDmg
 
-      - name: Create macOS installer
-        run: |
-          version="${{ github.ref_name }}"
-          version="${version#v}"
-          jpackage \
-            --type pkg \
-            --input build/install/web-patcher-service/lib \
-            --main-jar web-patcher-service-$version.jar \
-            --main-class app.revanced.webpatcher.ApplicationKt \
-            --name "ReVanced Web Patcher" \
-            --app-version $version \
-            --vendor "ReVanced" \
-            --description "Local API backend for patching Android APKs with ReVanced" \
-            --dest build/installer
-
-      - name: Upload macOS installer
+      - name: Upload macOS application
         uses: actions/upload-artifact@v4
         with:
-          name: macos-installer
-          path: build/installer/*.pkg
+          name: macos-application
+          path: build/compose/binaries/main-dmg/*.dmg
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -110,74 +71,15 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew installDist
+        run: ./gradlew packageDeb packageRpm
 
-      - name: Create Linux packages
-        run: |
-          version="${{ github.ref_name }}"
-          version="${version#v}"
-          
-          # DEB package
-          jpackage \
-            --type deb \
-            --input build/install/web-patcher-service/lib \
-            --main-jar web-patcher-service-$version.jar \
-            --main-class app.revanced.webpatcher.ApplicationKt \
-            --name revanced-web-patcher \
-            --app-version $version \
-            --vendor "ReVanced" \
-            --description "Local API backend for patching Android APKs with ReVanced" \
-            --linux-menu-group "Development" \
-            --linux-shortcut \
-            --linux-package-deps "libasound2, libpng16-16, zenity" \
-            --resource-dir src/main/resources \
-            --dest build/installer
-          
-          # Extract DEB, add GUI launcher, repackage
-          cd build/installer
-          dpkg-deb -R revanced-web-patcher_$version-1_amd64.deb temp-deb
-          
-          # Add GUI launcher to bin directory
-          cp ../../src/main/resources/revanced-web-patcher-gui temp-deb/opt/revanced-web-patcher/bin/
-          chmod +x temp-deb/opt/revanced-web-patcher/bin/revanced-web-patcher-gui
-          
-          # Repackage with gzip
-          dpkg-deb -Zgzip -b temp-deb revanced-web-patcher_$version-1_amd64.deb
-          rm -rf temp-deb
-          cd ../..
-          
-          # Repackage with gzip for Ubuntu 22.04 compatibility
-          cd build/installer
-          dpkg-deb -R revanced-web-patcher_$version-1_amd64.deb temp-deb
-          dpkg-deb -Zgzip -b temp-deb revanced-web-patcher_$version-1_amd64.deb
-          rm -rf temp-deb
-          cd ../..
-          
-          # RPM package (note: GUI launcher works same as DEB on Fedora/RHEL)
-          jpackage \
-            --type rpm \
-            --input build/install/web-patcher-service/lib \
-            --main-jar web-patcher-service-$version.jar \
-            --main-class app.revanced.webpatcher.ApplicationKt \
-            --name revanced-web-patcher \
-            --app-version $version \
-            --vendor "ReVanced" \
-            --description "Local API backend for patching Android APKs with ReVanced" \
-            --linux-menu-group "Development" \
-            --linux-shortcut \
-            --resource-dir src/main/resources \
-            --dest build/installer
-          
-          # Note: RPM users need to manually install zenity: sudo dnf install zenity
-          # The GUI launcher script is included via --resource-dir but needs post-install handling
-
-      - name: Upload Linux packages
+      - name: Upload Linux executables
         uses: actions/upload-artifact@v4
         with:
-          name: linux-packages
+          name: linux-executables
           path: |
-            build/installer/*.deb
-            build/installer/*.rpm
+            build/compose/binaries/main-deb/*.deb
+            build/compose/binaries/main-rpm/*.rpm
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -205,23 +107,23 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            windows-installer/*.exe
-            macos-installer/*.pkg
-            linux-packages/*.deb
-            linux-packages/*.rpm
+            windows-executable/*.exe
+            macos-application/*.dmg
+            linux-executables/*.deb
+            linux-executables/*.rpm
           body: |
             ${{ steps.changelog.outputs.changelog }}
-            
+
             ## Downloads
-            
+
             ### Windows
-            - `ReVanced Web Patcher-*.exe` - Double-click to install
-            
+            - `*.exe` - Windows installer (single file) - Double-click to install
+
             ### macOS
-            - `ReVanced Web Patcher-*.pkg` - Double-click to install (bypass security warning in System Preferences)
-            
+            - `*.dmg` - macOS installer (single file) - Double-click to install
+
             ### Linux
-            - `revanced-web-patcher_*.deb` - For Ubuntu/Debian: `sudo dpkg -i revanced-web-patcher_*.deb`
-            - `revanced-web-patcher-*.rpm` - For Fedora/RHEL: `sudo rpm -i revanced-web-patcher-*.rpm`
-            
-            All installers include a bundled Java runtime - no need to install Java separately!
+            - `*.deb` - Debian/Ubuntu package (single file) - Install with: `sudo dpkg -i *.deb`
+            - `*.rpm` - Fedora/RHEL/CentOS package (single file) - Install with: `sudo rpm -i *.rpm`
+
+            All installers are single files with bundled Java runtime and built-in GUI - no need to install Java separately! After installation, launch the ReVanced Web Patcher to access the GUI interface.

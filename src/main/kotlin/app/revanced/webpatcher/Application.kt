@@ -17,6 +17,17 @@ package app.revanced.webpatcher
 
 import app.revanced.library.logging.Logger
 import app.revanced.webpatcher.routing.configurePatchRoutes
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.application
+import io.ktor.server.engine.ApplicationEngine
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.http.HttpHeaders
@@ -36,13 +47,82 @@ import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.response.respond
+import java.awt.Desktop
 import java.net.URI
 import org.slf4j.event.Level
 
-fun main() {
+fun main() = application {
     Logger.setDefault()
+
+    var serverStatus by remember { mutableStateOf("Server: Stopped") }
+    var server by remember { mutableStateOf<ApplicationEngine?>(null) }
     val port = System.getenv("PORT")?.toIntOrNull() ?: 3000
-    embeddedServer(Netty, port = port) { configureServer() }.start(wait = true)
+
+    Window(
+        onCloseRequest = ::exitApplication,
+        title = "ReVanced Web Patcher"
+    ) {
+        MaterialTheme {
+            Column(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = "ReVanced Web Patcher",
+                    style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Text(
+                    text = serverStatus,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                Button(
+                    onClick = {
+                        if (server == null) {
+                            try {
+                                server = embeddedServer(Netty, port = port) { configureServer() }
+                                server?.start(wait = false)
+                                serverStatus = "Server: Running on port $port"
+                            } catch (e: Exception) {
+                                serverStatus = "Server: Failed to start"
+                            }
+                        }
+                    },
+                    enabled = server == null
+                ) {
+                    Text("Start Server")
+                }
+
+                Button(
+                    onClick = {
+                        server?.stop()
+                        server = null
+                        serverStatus = "Server: Stopped"
+                    },
+                    enabled = server != null
+                ) {
+                    Text("Stop Server")
+                }
+
+                Button(
+                    onClick = {
+                        try {
+                            Desktop.getDesktop().browse(URI("https://rv.aun.rest"))
+                        } catch (e: Exception) {
+                            // Fallback if Desktop.browse fails
+                        }
+                    }
+                ) {
+                    Text("Open Web Frontend")
+                }
+
+              }
+        }
+    }
 }
 
 private fun Application.configureServer() {
