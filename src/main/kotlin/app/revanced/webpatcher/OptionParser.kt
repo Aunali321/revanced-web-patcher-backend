@@ -1,16 +1,20 @@
 package app.revanced.webpatcher
 
 import app.revanced.library.PatchesOptions
-import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.serializer
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+}
 
 object OptionParser {
-    private val mapper get() = JsonMapper.mapper
-
     fun parse(input: String?): PatchesOptions {
         if (input.isNullOrBlank()) return emptyMap()
 
         return runCatching {
-            mapper.readValue<PatchesOptions>(input)
+            json.decodeFromString<PatchesOptions>(input)
         }.getOrElse { throwable ->
             throw IllegalArgumentException("Unable to parse options JSON: ${throwable.message}", throwable)
         }
@@ -20,7 +24,7 @@ object OptionParser {
         if (input.isNullOrBlank()) return emptySet()
 
         return runCatching {
-            mapper.readValue<Set<String>>(input)
+            json.decodeFromString<Set<String>>(input)
         }.getOrElse { throwable ->
             throw IllegalArgumentException("Unable to parse selected patches JSON: ${throwable.message}", throwable)
         }

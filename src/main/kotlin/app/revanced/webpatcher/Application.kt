@@ -17,6 +17,7 @@ package app.revanced.webpatcher
 
 import app.revanced.library.logging.Logger
 import app.revanced.webpatcher.routing.configurePatchRoutes
+
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -52,6 +53,9 @@ import java.net.URI
 import org.slf4j.event.Level
 
 fun main() = application {
+    System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "info")
+    System.setProperty("org.slf4j.simpleLogger.showDateTime", "true")
+
     Logger.setDefault()
 
     var serverStatus by remember { mutableStateOf("Server: Stopped") }

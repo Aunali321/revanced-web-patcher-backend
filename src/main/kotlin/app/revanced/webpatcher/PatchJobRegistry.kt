@@ -31,7 +31,7 @@ private data class PatchJob(
 
 class PatchJobRegistry {
     private companion object {
-        private const val EVENT_REPLAY = 256
+        private const val EVENT_REPLAY = 128
     }
 
     private val jobs = ConcurrentHashMap<UUID, PatchJob>()
@@ -58,7 +58,7 @@ class PatchJobRegistry {
                     PatchLogEventType.JOB_PREPARED,
                     patch = null,
                     message = "Job prepared",
-                    timestamp = now,
+                    timestamp = now.toString(),
                     severity = PatchLogSeverity.INFO,
                 ),
             )
@@ -104,7 +104,7 @@ class PatchJobRegistry {
                     PatchLogEventType.JOB_PREPARED,
                     patch = null,
                     message = "Job prepared",
-                    timestamp = now,
+                    timestamp = now.toString(),
                     severity = PatchLogSeverity.INFO,
                 ),
             )
@@ -133,6 +133,7 @@ class PatchJobRegistry {
         )
     }
 
+    // Simplified update method using standard patterns
     private fun update(id: UUID, transformer: (PatchJob) -> PatchJob) {
         jobs.computeIfPresent(id) { _, job -> transformer(job) }
     }

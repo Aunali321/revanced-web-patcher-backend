@@ -2,12 +2,8 @@ package app.revanced.webpatcher.service
 
 import app.revanced.patcher.Patcher
 import app.revanced.patcher.PatcherConfig
-import app.revanced.patcher.patch.BytecodePatch
-import app.revanced.patcher.patch.Option
-import app.revanced.patcher.patch.Patch
-import app.revanced.patcher.patch.RawResourcePatch
-import app.revanced.patcher.patch.ResourcePatch
 import app.revanced.patcher.patch.loadPatchesFromJar
+import app.revanced.library.serializeTo
 import app.revanced.webpatcher.PatchErrorStatus
 import app.revanced.webpatcher.PatchProcessingException
 import app.revanced.webpatcher.model.PatchBundleMetadata
@@ -19,6 +15,7 @@ import app.revanced.webpatcher.model.PatchOptionType
 import app.revanced.webpatcher.model.PatchType
 import app.revanced.webpatcher.model.TargetPackageMetadata
 import java.io.File
+import java.io.StringWriter
 import java.nio.file.Files
 import kotlin.collections.LinkedHashSet
 import kotlin.reflect.KClass
@@ -89,14 +86,14 @@ class PatchMetadataService {
         )
     }
 
-    private fun Patch<*>.toPatchType(): PatchType = when (this) {
-        is BytecodePatch -> PatchType.BYTECODE
-        is ResourcePatch -> PatchType.RESOURCE
-        is RawResourcePatch -> PatchType.RAW_RESOURCE
+    private fun app.revanced.patcher.patch.Patch<*>.toPatchType(): PatchType = when (this) {
+        is app.revanced.patcher.patch.BytecodePatch -> PatchType.BYTECODE
+        is app.revanced.patcher.patch.ResourcePatch -> PatchType.RESOURCE
+        is app.revanced.patcher.patch.RawResourcePatch -> PatchType.RAW_RESOURCE
         else -> PatchType.BYTECODE
     }
 
-    private fun Option<*>.toMetadata(): PatchOptionMetadata {
+    private fun app.revanced.patcher.patch.Option<*>.toMetadata(): PatchOptionMetadata {
         val optionType = resolveOptionType(type)
         return PatchOptionMetadata(
             key = key,
@@ -115,31 +112,27 @@ class PatchMetadataService {
         )
     }
 
-    private fun resolveOptionType(type: KType): PatchOptionType {
-        val classifier = type.classifier as? KClass<*> ?: return PatchOptionType.UNKNOWN
-
-        return when (classifier) {
-            String::class -> PatchOptionType.STRING
-            Boolean::class -> PatchOptionType.BOOLEAN
-            Int::class -> PatchOptionType.INT
-            Long::class -> PatchOptionType.LONG
-            Float::class -> PatchOptionType.FLOAT
-            Double::class -> PatchOptionType.DOUBLE
-            List::class, MutableList::class -> {
-                val argumentType = type.arguments.firstOrNull()?.type
-                val argumentClassifier = argumentType?.classifier as? KClass<*>
-                when (argumentClassifier) {
-                    String::class -> PatchOptionType.STRING_LIST
-                    Boolean::class -> PatchOptionType.BOOLEAN_LIST
-                    Int::class -> PatchOptionType.INT_LIST
-                    Long::class -> PatchOptionType.LONG_LIST
-                    Float::class -> PatchOptionType.FLOAT_LIST
-                    Double::class -> PatchOptionType.DOUBLE_LIST
-                    else -> PatchOptionType.UNKNOWN
-                }
+    private fun resolveOptionType(type: KType): PatchOptionType = when (type.classifier) {
+        String::class -> PatchOptionType.STRING
+        Boolean::class -> PatchOptionType.BOOLEAN
+        Int::class -> PatchOptionType.INT
+        Long::class -> PatchOptionType.LONG
+        Float::class -> PatchOptionType.FLOAT
+        Double::class -> PatchOptionType.DOUBLE
+        List::class, MutableList::class -> {
+            val argumentType = type.arguments.firstOrNull()?.type
+            when (argumentType?.classifier) {
+                String::class -> PatchOptionType.STRING_LIST
+                Boolean::class -> PatchOptionType.BOOLEAN_LIST
+                Int::class -> PatchOptionType.INT_LIST
+                Long::class -> PatchOptionType.LONG_LIST
+                Float::class -> PatchOptionType.FLOAT_LIST
+                Double::class -> PatchOptionType.DOUBLE_LIST
+                else -> PatchOptionType.UNKNOWN
             }
-            else -> PatchOptionType.UNKNOWN
         }
+
+        else -> PatchOptionType.UNKNOWN
     }
 
     private fun normalizeValue(value: Any?): Any? = when (value) {
@@ -151,6 +144,7 @@ class PatchMetadataService {
             val key = entry.key?.toString() ?: ""
             key to normalizeValue(entry.value)
         }
+
         else -> value.toString()
     }
 
@@ -178,7 +172,7 @@ class PatchMetadataService {
     }
 
     private fun evaluateCompatibility(
-        patch: Patch<*>,
+        patch: app.revanced.patcher.patch.Patch<*>,
         target: TargetPackageMetadata?,
     ): CompatibilityResult {
         val compatiblePackages = patch.compatiblePackages
@@ -245,7 +239,7 @@ class PatchMetadataService {
         }
     }
 
-    private data class PatchVariant(val patch: Patch<*>, val bundleName: String) {
+    private data class PatchVariant(val patch: app.revanced.patcher.patch.Patch<*>, val bundleName: String) {
         fun matchesTargetStrict(target: TargetPackageMetadata): Boolean {
             val compat = patch.compatiblePackages ?: return false
             val entry = compat.firstOrNull { it.first == target.packageName } ?: return false
@@ -262,7 +256,7 @@ class PatchMetadataService {
     }
 
     private data class VariantSelection(
-        val patch: Patch<*>,
+        val patch: app.revanced.patcher.patch.Patch<*>,
         val bundleNames: LinkedHashSet<String>,
     )
 

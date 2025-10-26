@@ -5,6 +5,7 @@ import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 
 plugins {
     kotlin("jvm") version "2.0.20"
+    kotlin("plugin.serialization") version "2.0.20"
     id("org.jetbrains.compose") version "1.6.11"
     id("org.jetbrains.kotlin.plugin.compose") version "2.0.20"
 }
@@ -49,8 +50,17 @@ dependencies {
     implementation("io.ktor:ktor-server-cors-jvm:2.3.7")
     implementation("io.ktor:ktor-serialization-jackson-jvm:2.3.7")
     implementation("io.ktor:ktor-server-call-logging-jvm:2.3.7")
-    implementation("ch.qos.logback:logback-classic:1.4.14")
+    // Use SLF4J Simple instead of Logback to avoid JNDI issues
+    implementation("org.slf4j:slf4j-simple:2.0.9")
+
+    configurations.all {
+        exclude(group = "ch.qos.logback")
+    }
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+
+    // Prevent JNDI issues in native packages
+    implementation("org.apache.logging.log4j:log4j-core:2.20.0")
 
     implementation("app.revanced:revanced-patcher:21.0.0")
     implementation("app.revanced:revanced-library:3.1.0")
@@ -73,6 +83,10 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "revanced-web-patcher"
             packageVersion = "1.0.0"
+            jvmArgs += listOf(
+                "-Dorg.slf4j.simpleLogger.defaultLogLevel=info",
+                "-Dorg.slf4j.simpleLogger.showDateTime=true"
+            )
         }
     }
 }

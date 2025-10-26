@@ -1,8 +1,10 @@
 package app.revanced.webpatcher.routing
 
 import app.revanced.library.PatchesOptions
-import app.revanced.webpatcher.JsonMapper
 import app.revanced.webpatcher.OptionParser
+import app.revanced.webpatcher.util.FileUtils
+import app.revanced.webpatcher.model.PatchLogEvent
+import kotlinx.serialization.json.Json
 import app.revanced.webpatcher.PatchErrorStatus
 import app.revanced.webpatcher.PatchJobRegistry
 import app.revanced.webpatcher.PatchProcessingException
@@ -64,7 +66,7 @@ fun Application.configurePatchRoutes() {
             call.response.cacheControl(CacheControl.NoCache(null))
             call.respondTextWriter(contentType = ContentType.Text.EventStream) {
                 events.collect { event ->
-                    val payload = JsonMapper.mapper.writeValueAsString(event)
+                    val payload = kotlinx.serialization.json.Json.encodeToString(PatchLogEvent.serializer(), event)
                     write("event: ${event.event}\n")
                     write("data: $payload\n\n")
                     flush()
@@ -81,7 +83,7 @@ fun Application.configurePatchRoutes() {
             multipart.forEachPart { part ->
                 when (part) {
                     is PartData.FileItem -> {
-                        val savedFile = saveUpload(part).also(uploadedFiles::add)
+                        val savedFile = FileUtils.saveUpload(part).also(uploadedFiles::add)
                         val originalName = part.originalFileName
                         when (part.name) {
                             "patches" -> patchBundles += UploadedFile(savedFile, originalName)
@@ -122,7 +124,7 @@ fun Application.configurePatchRoutes() {
             multipart.forEachPart { part ->
                 when (part) {
                     is PartData.FileItem -> {
-                        val savedFile = saveUpload(part).also(uploadedFiles::add)
+                        val savedFile = FileUtils.saveUpload(part).also(uploadedFiles::add)
                         val originalName = part.originalFileName
                         when (part.name) {
                             "apk" -> apk = UploadedFile(savedFile, originalName)
@@ -209,18 +211,4 @@ fun Application.configurePatchRoutes() {
             }
         }
     }
-}
-
-private fun saveUpload(part: PartData.FileItem): File {
-    val originalName = part.originalFileName ?: "upload.bin"
-    val extension = originalName.substringAfterLast('.', "").lowercase().let {
-        if (it.isBlank()) "" else ".$it"
-    }
-    val tempFile = Files.createTempFile("web-patcher-upload-", extension).toFile()
-    part.streamProvider().use { input ->
-        tempFile.outputStream().use { output ->
-            input.copyTo(output)
-        }
-    }
-    return tempFile
 }

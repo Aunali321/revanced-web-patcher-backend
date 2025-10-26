@@ -1,7 +1,9 @@
 package app.revanced.webpatcher.model
 
+import kotlinx.serialization.Serializable
 import java.time.Instant
 
+// Web API response models - these are needed for HTTP responses
 data class PatchMetadataResponse(
     val bundles: List<PatchBundleMetadata>,
     val patches: List<PatchMetadata>,
@@ -69,14 +71,17 @@ enum class PatchType {
     RAW_RESOURCE,
 }
 
+// Web-specific event models - these are essential for Server-Sent Events
+@Serializable
 data class PatchLogEvent(
     val event: PatchLogEventType,
     val patch: String?,
     val message: String,
-    val timestamp: Instant,
+    val timestamp: String, // Serialize Instant as String for compatibility
     val severity: PatchLogSeverity,
 )
 
+@Serializable
 enum class PatchLogEventType {
     JOB_PREPARED,
     JOB_STARTED,
@@ -89,6 +94,7 @@ enum class PatchLogEventType {
     INFO,
 }
 
+@Serializable
 enum class PatchLogSeverity {
     INFO,
     WARN,

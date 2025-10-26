@@ -14,11 +14,11 @@ import app.revanced.webpatcher.PatchProcessingException
 import app.revanced.webpatcher.model.PatchLogEvent
 import app.revanced.webpatcher.model.PatchLogEventType
 import app.revanced.webpatcher.model.PatchLogSeverity
+import app.revanced.webpatcher.util.FileUtils
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.runBlocking
 import java.io.Closeable
 import java.io.File
-import java.nio.file.Files
 import java.time.Duration
 import java.time.Instant
 import java.util.LinkedHashSet
@@ -33,19 +33,23 @@ class PatchService(
     fun patch(jobId: UUID, request: PatchRequest): PatchResultFile {
         jobRegistry.markRunning(jobId)
 
-        val workspace = Files.createTempDirectory("web-patcher-$jobId-").toFile()
+        // Use consolidated workspace creation
+        val workspace = FileUtils.createWorkspace("web-patcher-$jobId-")
 
         return try {
-            val apkCopy = request.apk.copyTo(workspace.resolve(request.apk.name), overwrite = true)
-            val patchCopies = request.patches.mapIndexed { index, file ->
-                val name = file.name.ifBlank { "patch-${index + 1}.rvp" }
-                file.copyTo(workspace.resolve(name), overwrite = true)
-            }
+            // Use consolidated file copying utilities
+            val uploadedFiles = listOf(
+                app.revanced.webpatcher.model.UploadedFile(request.apk, request.apk.name)
+            ) + request.patches.map { app.revanced.webpatcher.model.UploadedFile(it, it.name) }
+
+            val apkCopy = FileUtils.copyApkToWorkspace(uploadedFiles.first(), workspace)
+            val patchCopies = FileUtils.copyPatchesToWorkspace(uploadedFiles.drop(1), workspace)
 
             val loader = loadPatchesFromJar(patchCopies.toSet())
 
-            val patcherTemp = workspace.resolve("patcher-temp").also { it.mkdirs() }
-            jobRegistry.emit(jobId, PatchLogEvent(PatchLogEventType.JOB_STARTED, null, "Job started", Instant.now(), PatchLogSeverity.INFO))
+            // Use standardized patcher temp directory creation
+            val patcherTemp = FileUtils.createPatcherTempDir(workspace)
+            jobRegistry.emit(jobId, PatchLogEvent(PatchLogEventType.JOB_STARTED, null, "Job started", Instant.now().toString(), PatchLogSeverity.INFO))
 
             val patcherResult = executePatcher(
                 jobId,
@@ -64,7 +68,7 @@ class PatchService(
 
             patcherResult.applyTo(workingApk)
 
-            val outputApk = workspace.resolve("${apkCopy.nameWithoutExtension}-patched.${apkCopy.extension}")
+            val outputApk = workspace.resolve(FileUtils.createOutputFileName(apkCopy.name))
             val keystoreFile = workspace.resolve("signing.keystore")
 
             ApkUtils.signApk(
@@ -75,11 +79,11 @@ class PatchService(
             )
 
             jobRegistry.markSuccess(jobId, outputApk.name)
-            jobRegistry.emit(jobId, PatchLogEvent(PatchLogEventType.JOB_COMPLETED, null, "Job completed", Instant.now(), PatchLogSeverity.INFO))
+            jobRegistry.emit(jobId, PatchLogEvent(PatchLogEventType.JOB_COMPLETED, null, "Job completed", Instant.now().toString(), PatchLogSeverity.INFO))
 
             PatchResultFile(outputApk, workspace)
         } catch (cause: PatchProcessingException) {
-            workspace.deleteRecursively()
+            FileUtils.cleanupWorkspace(workspace)
             jobRegistry.markFailure(jobId, cause.message ?: "Patch failed")
             jobRegistry.emit(
                 jobId,
@@ -87,13 +91,13 @@ class PatchService(
                     PatchLogEventType.JOB_FAILED,
                     null,
                     cause.message ?: "Patch failed",
-                    Instant.now(),
+                    Instant.now().toString(),
                     PatchLogSeverity.ERROR,
                 ),
             )
             throw cause
         } catch (cause: Throwable) {
-            workspace.deleteRecursively()
+            FileUtils.cleanupWorkspace(workspace)
             jobRegistry.markFailure(jobId, cause.message ?: "Patch failed")
             jobRegistry.emit(
                 jobId,
@@ -101,7 +105,7 @@ class PatchService(
                     PatchLogEventType.JOB_FAILED,
                     null,
                     cause.message ?: "Patch failed",
-                    Instant.now(),
+                    Instant.now().toString(),
                     PatchLogSeverity.ERROR,
                 ),
             )
@@ -151,12 +155,13 @@ class PatchService(
                     PatchLogEventType.PATCH_QUEUED,
                     patch.name,
                     "Queued patch ${patch.name}",
-                    Instant.now(),
+                    Instant.now().toString(),
                     PatchLogSeverity.INFO,
                 ),
             )
         }
 
+        selected.setOptions(options)
         patcher += selected
 
         val startTimes = mutableMapOf<String, Instant>()
@@ -182,7 +187,7 @@ class PatchService(
                             PatchLogEventType.PATCH_FAILED,
                             patchName,
                             message,
-                            Instant.now(),
+                            Instant.now().toString(),
                             PatchLogSeverity.ERROR,
                         ),
                     )
@@ -206,7 +211,7 @@ class PatchService(
                             PatchLogEventType.PATCH_SUCCEEDED,
                             patchName,
                             message,
-                            Instant.now(),
+                            Instant.now().toString(),
                             PatchLogSeverity.INFO,
                         ),
                     )
@@ -293,7 +298,7 @@ class PatchService(
                     PatchLogEventType.PATCH_STARTED,
                     nextName,
                     "Patch $nextName started",
-                    timestamp,
+                    timestamp.toString(),
                     PatchLogSeverity.INFO,
                 ),
             )
@@ -317,6 +322,6 @@ class PatchResultFile(
     private val workspace: File,
 ) : Closeable {
     override fun close() {
-        workspace.deleteRecursively()
+        app.revanced.webpatcher.util.FileUtils.cleanupWorkspace(workspace)
     }
 }
