@@ -25,13 +25,13 @@ jobs:
         env:
           GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew.bat packageExe
+        run: ./gradlew.bat packageMsi
 
       - name: Upload Windows executable
         uses: actions/upload-artifact@v4
         with:
           name: windows-executable
-          path: build/compose/binaries/main-exe/*.exe
+          path: build/compose/binaries/main-msi/*.msi
 
   build-macos:
     runs-on: macos-latest
@@ -54,7 +54,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macos-application
-          path: build/compose/binaries/main-dmg/*.dmg
+          path: build/compose/binaries/main/dmg/*.dmg
 
   build-linux:
     runs-on: ubuntu-22.04
@@ -78,8 +78,8 @@ jobs:
         with:
           name: linux-executables
           path: |
-            build/compose/binaries/main-deb/*.deb
-            build/compose/binaries/main-rpm/*.rpm
+            build/compose/binaries/main/deb/*.deb
+            build/compose/binaries/main/rpm/*.rpm
 
   release:
     needs: [build-windows, build-macos, build-linux]
@@ -107,7 +107,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            windows-executable/*.exe
+            windows-executable/*.msi
             macos-application/*.dmg
             linux-executables/*.deb
             linux-executables/*.rpm
@@ -117,7 +117,7 @@ jobs:
             ## Downloads
 
             ### Windows
-            - `*.exe` - Windows installer (single file) - Double-click to install
+            - `*.msi` - Windows installer (single file) - Double-click to install
 
             ### macOS
             - `*.dmg` - macOS installer (single file) - Double-click to install
