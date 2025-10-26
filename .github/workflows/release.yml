@@ -92,12 +92,6 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
 
-      - name: Extract Linux artifacts
-        run: |
-          cd linux-executables
-          unzip -o ../linux-executables.zip
-          ls -la
-
       - name: Generate changelog
         id: changelog
         uses: ardalanamini/auto-changelog@v4.0.6
@@ -113,10 +107,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            windows-executable/*.msi
-            macos-application/*.dmg
-            linux-executables/*.deb
-            linux-executables/*.rpm
+            windows-executable/**/*.msi
+            macos-application/**/*.dmg
+            linux-executables/**/*.{deb,rpm}
           body: |
             ${{ steps.changelog.outputs.changelog }}
 
