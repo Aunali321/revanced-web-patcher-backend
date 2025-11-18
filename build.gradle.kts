@@ -59,9 +59,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
-    // Prevent JNDI issues in native packages
-    implementation("org.apache.logging.log4j:log4j-core:2.20.0")
-
     implementation("app.revanced:revanced-patcher:21.0.0")
     implementation("app.revanced:revanced-library:3.1.0")
 
